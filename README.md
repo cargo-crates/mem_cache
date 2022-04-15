@@ -1,6 +1,14 @@
+# CacherRs &emsp;
+[![ci](https://github.com/cargo-crates/cacher_rs/workflows/Rust/badge.svg)](https://github.com/cargo-crates/cacher_rs/actions)
+[![Latest Version]][crates.io]
+![downloads](https://img.shields.io/crates/d/cacher_rs.svg?style=flat-square)
+
+[Latest Version]: https://img.shields.io/crates/v/cacher_rs.svg
+[crates.io]: https://crates.io/crates/cacher_rs
+
 ### usage
 
-* sync cache
+* sync cacher
 ```rust
 use cacher_rs::{Cacher};
 
@@ -14,7 +22,7 @@ let v1 = string_cacher.fetch("v1", 10, || "1".to_string());
 assert_eq!(v1, "1");
 ```
 
-* async cache
+* async cacher
 ```rust
 use cacher_rs::{AsyncCacher};
 
