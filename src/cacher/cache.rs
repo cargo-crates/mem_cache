@@ -23,6 +23,14 @@ impl<T> Cache<T> {
           false
       }
   }
+  pub fn update_value(&mut self, value: T) {
+    self.begin_secs = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+    self.value = Some(value);
+  }
+  pub fn expire_value(&mut self) {
+    self.begin_secs = 0;
+    self.value = None;
+  }
   pub fn value(&mut self) -> &T {
       self.value.get_or_insert_with(|| {
           let v = (self.calculation)();

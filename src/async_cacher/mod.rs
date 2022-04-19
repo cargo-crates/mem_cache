@@ -33,6 +33,40 @@ impl<T> Cacher<T> {
             return in_cache.value().await
         }
     }
+    pub async fn force_fetch(&mut self, key: &str, expires_in_secs: u64, calculation: impl Fn() -> Pin<Box<dyn Future<Output = anyhow::Result<T>>>> + 'static) -> anyhow::Result<&T> {
+        let cache: Cache<T> = Cache::new(expires_in_secs, calculation);
+        self.cache_map.insert(key.to_string(), cache);
+        self.cache_map.get_mut(key).unwrap().value().await
+    }
+    pub async fn read(&mut self, key: &str) -> anyhow::Result<&T> {
+        match self.cache_map.get_mut(key) {
+            Some(cache) => {
+                cache.value().await
+            },
+            None => Err(anyhow::anyhow!("cache not exists"))
+        }
+    }
+    pub fn write(&mut self, key: &str, value: T) -> anyhow::Result<()> {
+        match self.cache_map.get_mut(key) {
+            Some(cache) => {
+                cache.update_value(value);
+                Ok(())
+            },
+            None => Err(anyhow::anyhow!("cache not exists"))
+        }
+    }
+    pub fn expire(&mut self, key: &str) -> anyhow::Result<()> {
+        match self.cache_map.get_mut(key) {
+            Some(cache) => {
+                cache.expire_value();
+                Ok(())
+            },
+            None => Err(anyhow::anyhow!("cache not exists"))
+        }
+    }
+    pub fn delete(&mut self, key: &str) -> Option<Cache<T>> {
+        self.cache_map.remove(key)
+    }
 }
 
 #[cfg(test)]
@@ -40,7 +74,7 @@ mod tests {
     use super::*;
     use std::{thread, time};
 
-    async fn main_test() -> anyhow::Result<()> {
+    async fn test_fetch() -> anyhow::Result<()> {
         let mut i32_cacher = Cacher::<i32>::new();
         {
             let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
@@ -68,10 +102,81 @@ mod tests {
         Ok(())
     }
 
+    async fn test_force_fetch() -> anyhow::Result<()> {
+        let mut i32_cacher = Cacher::<i32>::new();
+        let v1 = i32_cacher.force_fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &1);
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(3)})).await?;
+        assert_eq!(v1, &1);
+        let v1 = i32_cacher.force_fetch("v1", 10, || Box::pin(async { Ok(2)})).await?;
+        assert_eq!(v1, &2);
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(3)})).await?;
+        assert_eq!(v1, &2);
+
+        Ok(())
+    }
+
+    async fn test_read() -> anyhow::Result<()> {
+        let mut i32_cacher = Cacher::<i32>::new();
+        let v1 = i32_cacher.force_fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &1);
+        let v1 = i32_cacher.read("v1").await;
+        assert_eq!(v1.unwrap(), &1);
+        let v1 = i32_cacher.read("v2").await;
+        assert!(v1.is_err());
+
+        Ok(())
+    }
+
+    async fn test_write() -> anyhow::Result<()> {
+        let mut i32_cacher = Cacher::<i32>::new();
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &1);
+        i32_cacher.write("v1", 3).unwrap();
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &3);
+
+        Ok(())
+    }
+
+    async fn test_expire() -> anyhow::Result<()> {
+        let mut i32_cacher = Cacher::<i32>::new();
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &1);
+        i32_cacher.expire("v1").unwrap();
+        let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async { Ok(2)})).await?;
+        assert_eq!(v1, &2);
+
+        Ok(())
+    }
+
+    async fn test_delete() -> anyhow::Result<()> {
+        let mut i32_cacher = Cacher::<i32>::new();
+        let v1 = i32_cacher.force_fetch("v1", 10, || Box::pin(async { Ok(1)})).await?;
+        assert_eq!(v1, &1);
+        let v1 = i32_cacher.delete("v1");
+        assert!(v1.is_some());
+
+        Ok(())
+    }
+
     #[test]
     fn test_cacher() {
+
+        async fn test_all() -> anyhow::Result<()> {
+            test_fetch().await?;
+            test_force_fetch().await?;
+            test_read().await?;
+            test_write().await?;
+            test_expire().await?;
+            test_delete().await?;
+
+            Ok(())
+        }
+
+
         assert!(
-            match tokio_test::block_on(main_test()) {
+            match tokio_test::block_on(test_all()) {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     eprintln!("err: {:?}", e);

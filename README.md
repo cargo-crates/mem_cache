@@ -39,3 +39,12 @@ let v1 = string_cacher.fetch("v1", 10, || Box::pin(async {
 })).await?;
 assert_eq!(v1, "1");
 ```
+
+### methods
+
+* `[async] fetch(key, value, closure)` return cache value if not expires or recalculate closure value
+* `[async] force_fetch(key, value, closure)` force recalculate closure value
+* `[async] read(key)` return key cache value if cache exists
+* `write(key, value)` overwrite cache value and expiration time if cache exists
+* `expire(key)` make cache value expired if cache exists
+* `delete(key)` remove cache if cache exists
