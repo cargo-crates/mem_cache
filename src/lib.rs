@@ -1,5 +1,5 @@
-mod cacher;
-mod async_cacher;
+mod cache;
+mod async_cache;
 
-pub use cacher::Cacher;
-pub use async_cacher::Cacher as AsyncCacher;
+pub use cache::Cache;
+pub use async_cache::Cache as AsyncCache;

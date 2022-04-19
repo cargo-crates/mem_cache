@@ -1,40 +1,40 @@
-# CacherRs &emsp;
-[![ci](https://github.com/cargo-crates/cacher_rs/workflows/Rust/badge.svg)](https://github.com/cargo-crates/cacher_rs/actions)
+# MemCache &emsp;
+[![ci](https://github.com/cargo-crates/mem_cache/workflows/Rust/badge.svg)](https://github.com/cargo-crates/mem_cache/actions)
 [![Latest Version]][crates.io]
-![downloads](https://img.shields.io/crates/d/cacher_rs.svg?style=flat-square)
+![downloads](https://img.shields.io/crates/d/mem_cache.svg?style=flat-square)
 
-[Latest Version]: https://img.shields.io/crates/v/cacher_rs.svg
-[crates.io]: https://crates.io/crates/cacher_rs
+[Latest Version]: https://img.shields.io/crates/v/mem_cache.svg
+[crates.io]: https://crates.io/crates/mem_cache
 
 ### usage
 
-* sync cacher
+* cache
 ```rust
-use cacher_rs::{Cacher};
+use mem_cache::{Cache};
 
-let mut i32_cacher = Cacher::<i32>::new();
+let mut i32_cache = Cache::<i32>::new();
 // expires_in_secs: 0 ->  expires immediate
-let v1 = i32_cacher.fetch("v1", 10, || 1);
+let v1 = i32_cache.fetch("v1", 10, || 1);
 assert_eq!(v1, &1);
 
-let mut string_cacher = Cacher::<String>::new();
-let v1 = string_cacher.fetch("v1", 10, || "1".to_string());
+let mut string_cache = Cache::<String>::new();
+let v1 = string_cache.fetch("v1", 10, || "1".to_string());
 assert_eq!(v1, "1");
 ```
 
-* async cacher
+* async cache
 ```rust
-use cacher_rs::{AsyncCacher};
+use mem_cache::{AsyncCache};
 
-let mut i32_cacher = AsyncCacher::<i32>::new();
+let mut i32_cache = AsyncCache::<i32>::new();
 // expires_in_secs: 0 ->  expires immediate
-let v1 = i32_cacher.fetch("v1", 10, || Box::pin(async {
+let v1 = i32_cache.fetch("v1", 10, || Box::pin(async {
   Ok(1)
 })).await?;
 assert_eq!(v1, &1);
 
-let mut string_cacher = AsyncCacher::<String>::new();
-let v1 = string_cacher.fetch("v1", 10, || Box::pin(async {
+let mut string_cache = AsyncCache::<String>::new();
+let v1 = string_cache.fetch("v1", 10, || Box::pin(async {
   Ok("1".to_string())
 })).await?;
 assert_eq!(v1, "1");
