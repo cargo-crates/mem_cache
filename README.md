@@ -1,3 +1,7 @@
+# DEPRECATED
+please visite https://github.com/cargo-crates/mem_cache
+
+
 # CacherRs &emsp;
 [![ci](https://github.com/cargo-crates/cacher_rs/workflows/Rust/badge.svg)](https://github.com/cargo-crates/cacher_rs/actions)
 [![Latest Version]][crates.io]

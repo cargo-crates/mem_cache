@@ -1,6 +1,6 @@
 [package]
 name = "cacher_rs"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 description = "memory cache"
 license = "MIT OR Apache-2.0"
