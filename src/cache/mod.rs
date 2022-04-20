@@ -25,7 +25,7 @@ impl<T> Cache<T> {
             return in_cache_item.value()
         } else {
             let in_cache_item = self.cache_item_map.get_mut(key).unwrap();
-            if in_cache_item.is_value_expires() {
+            if in_cache_item.is_value_expired() {
                 let cache_item: CacheItem<T> = CacheItem::new(expires_in_secs, calculation);
                 *in_cache_item = cache_item
             }
@@ -37,7 +37,7 @@ impl<T> Cache<T> {
         self.cache_item_map.insert(key.to_string(), cache);
         self.cache_item_map.get_mut(key).unwrap().value()
     }
-    pub fn read(&mut self, key: &str) -> anyhow::Result<&T> {
+    pub fn get(&mut self, key: &str) -> anyhow::Result<&T> {
         match self.cache_item_map.get_mut(key) {
             Some(cache_item) => {
                 Ok(cache_item.value())
@@ -45,7 +45,7 @@ impl<T> Cache<T> {
             None => Err(anyhow::anyhow!("cache not exists"))
         }
     }
-    pub fn write(&mut self, key: &str, value: T) -> anyhow::Result<()> {
+    pub fn insert(&mut self, key: &str, value: T) -> anyhow::Result<()> {
         match self.cache_item_map.get_mut(key) {
             Some(cache_item) => {
                 cache_item.update_value(value);
@@ -63,8 +63,27 @@ impl<T> Cache<T> {
             None => Err(anyhow::anyhow!("cache not exists"))
         }
     }
-    pub fn delete(&mut self, key: &str) -> Option<CacheItem<T>> {
+    pub fn contains_key(&self, key: &str) -> bool {
+        self.cache_item_map.contains_key(key)
+    }
+    pub fn remove(&mut self, key: &str) -> Option<CacheItem<T>> {
         self.cache_item_map.remove(key)
+    }
+    pub fn keys(&self) -> Vec<&String> {
+        self.cache_item_map.keys().collect()
+    }
+    pub fn clear_expired(&mut self) {
+        let keys = self.keys().iter().map(|i| i.to_string()).collect::<Vec<String>>();
+        for key in keys.iter() {
+            if let Some(cache_item) = self.cache_item_map.get_mut(key) {
+                if cache_item.is_value_expired() {
+                    self.remove(key);
+                }
+            }
+        }
+    }
+    pub fn clear(&mut self) {
+        self.cache_item_map.clear();
     }
 }
 
@@ -143,24 +162,24 @@ mod tests {
     }
 
     #[test]
-    fn test_read() {
+    fn test_get() {
         let mut i32_cache = Cache::<i32>::new();
         let a =  0;
         let v1 = i32_cache.force_fetch("v1", 10, move || 1 + a);
         assert_eq!(v1, &1);
-        let v1 = i32_cache.read("v1");
+        let v1 = i32_cache.get("v1");
         assert_eq!(v1.unwrap(), &1);
-        let v1 = i32_cache.read("v2");
+        let v1 = i32_cache.get("v2");
         assert!(v1.is_err());
     }
 
     #[test]
-    fn test_write() {
+    fn test_insert() {
         let mut i32_cache = Cache::<i32>::new();
         let a =  0;
         let v1 = i32_cache.fetch("v1", 10, move || 1 + a);
         assert_eq!(v1, &1);
-        i32_cache.write("v1", 2).unwrap();
+        i32_cache.insert("v1", 2).unwrap();
         let v1 = i32_cache.fetch("v1", 10, move || 1 + a);
         assert_eq!(v1, &2);
     }
@@ -177,12 +196,32 @@ mod tests {
     }
 
     #[test]
-    fn test_delete() {
+    fn test_remove() {
         let mut i32_cache = Cache::<i32>::new();
         let a =  0;
         let v1 = i32_cache.force_fetch("v1", 10, move || 1 + a);
         assert_eq!(v1, &1);
-        let v1 = i32_cache.delete("v1");
+        let v1 = i32_cache.remove("v1");
         assert!(v1.is_some());
+    }
+
+    #[test]
+    fn test_others() {
+        // contains_key
+        let mut i32_cache = Cache::<i32>::new();
+        assert_eq!(i32_cache.contains_key("v1"), false);
+        i32_cache.force_fetch("v1", 10, move || 1);
+        i32_cache.force_fetch("v2", 0, move || 2);
+        assert_eq!(i32_cache.contains_key("v1"), true);
+        // keys
+        let mut keys = i32_cache.keys();
+        keys.sort();
+        assert_eq!(keys, vec!["v1", "v2"]);
+        // clear_expired
+        i32_cache.clear_expired();
+        assert_eq!(i32_cache.keys(), vec!["v1"]);
+        // clear
+        i32_cache.clear();
+        assert!(i32_cache.keys().is_empty());
     }
 }

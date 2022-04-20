@@ -15,7 +15,7 @@ impl<T> CacheItem<T> {
           value: None
       }
   }
-  pub fn is_value_expires(&mut self) -> bool {
+  pub fn is_value_expired(&mut self) -> bool {
       let current_secs = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
       if current_secs >= self.begin_secs + self.expires_in_secs.as_secs() {
           true
